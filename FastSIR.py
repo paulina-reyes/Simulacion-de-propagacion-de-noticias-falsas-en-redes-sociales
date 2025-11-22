@@ -113,7 +113,6 @@ def ejecutar_simulacion_y_graficar(n_nodos, beta, gamma):
     plt.show()
 
 
-
 # FUNCIÓN PARA ANALIZAR EL IMPACTO DEL NODO INICIAL
 def analizar_impacto_nodo_inicial(n_nodos, beta, gamma):
     """
@@ -297,4 +296,138 @@ def comparar_topologias(n_nodos, beta, gamma):
 
     return alcances_finales
 
+# FUNCIÓN PARA VISUALIZAR EL INICIO DEL GRAFO 
+def visualizar_grafo_inicial(n_nodos_ejemplo, beta, gamma):
+    """
+    Crea y visualiza el estado inicial de un grafo.
+    """
+    m_conexiones = 2
+    G = crear_grafo_libre_de_escala(n_nodos_ejemplo, m_conexiones)
+    
+    # Inicialización de estados: S=0, I=1, R=2
+    n_nodos = G.number_of_nodes()
+    estado_inicial = np.zeros(n_nodos, dtype=int) # Todos son Susceptibles (S=0)
+    
+    # Elegir el nodo inicial 'Infectado' (I=1)
+    inicio = random.choice(list(G.nodes()))
+    estado_inicial[inicio] = 1 # El nodo inicial se infecta
+    
+    # 1. ASIGNAR COLORES
+    colores = []
+    mapa_colores = {0: 'blue', 1: 'red', 2: 'green'} # R=2 (verde) no se usa aquí
+    
+    for nodo in G.nodes():
+        estado = estado_inicial[nodo]
+        colores.append(mapa_colores[estado])
+        
+    # 2. GRAFICAR EL GRAFO
+    plt.figure(figsize=(10, 8))
+    pos = nx.spring_layout(G, seed=42, k=0.3) 
+    
+    nx.draw_networkx_nodes(G, pos, node_color=colores, node_size=100, alpha=0.8)
+    nx.draw_networkx_edges(G, pos, edge_color='gray', alpha=0.4)
+    
+    # Crear leyenda manualmente
+    plt.scatter([], [], c='blue', s=150, label='Susceptible (S)')
+    plt.scatter([], [], c='red', s=150, label='Infectado (I)')
+    plt.scatter([], [], c='green', s=150, label='Recuperado (R)')
 
+    plt.title(f'Visualización de la Red: Estado INICIAL (N={n_nodos_ejemplo})', fontsize=15)
+    plt.legend(scatterpoints=1)
+    plt.axis('off')
+    plt.show()
+
+
+# FUNCIÓN PARA VISUALIZAR EL FIN DEL GRAFO 
+def visualizar_grafo_final(n_nodos_ejemplo, beta, gamma):
+    """
+    Crea, simula y visualiza un grafo más pequeño con colores según el estado final (S, I, R).
+    """
+    m_conexiones = 2
+    G = crear_grafo_libre_de_escala(n_nodos_ejemplo, m_conexiones)
+    
+    # Simular la propagación
+    _, _, _, estado_final = simular_fast_sir(G, beta, gamma)
+    
+    # 1. ASIGNAR COLORES
+    # S=0 (Azul), I=1 (Rojo), R=2 (Verde)
+    colores = []
+    
+    # Mapeo de estados a colores
+    mapa_colores = {0: 'blue', 1: 'red', 2: 'green'}
+    
+    for nodo in G.nodes():
+        estado = estado_final[nodo]
+        colores.append(mapa_colores[estado])
+        
+    # 2. GRAFICAR EL GRAFO
+    plt.figure(figsize=(10, 8))
+    
+    # Usamos un layout (por ejemplo, spring_layout) para posicionar los nodos
+    pos = nx.spring_layout(G, seed=42, k=0.3) 
+    
+    nx.draw_networkx_nodes(G, pos, node_color=colores, node_size=100, alpha=0.8)
+    nx.draw_networkx_edges(G, pos, edge_color='gray', alpha=0.4)
+    
+    # Crear leyenda manualmente
+    for estado, color in mapa_colores.items():
+        if estado == 0: etiqueta = 'Susceptible (S)'
+        elif estado == 1: etiqueta = 'Infectado (I)'
+        else: etiqueta = 'Recuperado (R)'
+        plt.scatter([], [], c=color, s=150, label=etiqueta)
+
+    plt.title(f'Visualización de la Propagación Final (N={n_nodos_ejemplo}, β={beta}, γ={gamma})', fontsize=15)
+    plt.legend(scatterpoints=1)
+    plt.axis('off') # Ocultar ejes
+    plt.show()
+
+
+# CONFIGURACIÓN INICIAL
+if __name__ == '__main__':
+    # Configuración de la Red
+    NUM_NODOS = 5000  # Número total de usuarios en la red
+    BETA = 0.5        # Tasa de infección
+    GAMMA = 0.3       # Tasa de recuperación
+    
+    # Ejecutar la simulación base (Curvas S-I-R)
+    ejecutar_simulacion_y_graficar(NUM_NODOS, BETA, GAMMA)
+    
+    # Ejecutar el Análisis de Sensibilidad (γ) 
+    GAMMA_MIN = 0.1
+    GAMMA_MAX = 1.5
+    NUM_PASOS = 15
+    
+    analizar_sensibilidad_gamma(
+        NUM_NODOS, 
+        BETA, 
+        GAMMA_MIN, 
+        GAMMA_MAX, 
+        NUM_PASOS
+    )
+
+    # Ejecutar la Comparación de Topologías 
+    comparar_topologias(NUM_NODOS, BETA, GAMMA)
+
+    
+    # Ejecutar el Análisis del Impacto del Nodo Inicial 
+    analizar_impacto_nodo_inicial(
+        NUM_NODOS, 
+        BETA, 
+        GAMMA
+    )
+    
+    # Ejecutar la Visualización del Grafo 
+    # Usamos una red mucho más pequeña para que se pueda dibujar
+    NODOS_VISUALIZACION = 100 
+
+    visualizar_grafo_inicial(
+            NODOS_VISUALIZACION, 
+            BETA, 
+            GAMMA
+        )
+    
+    visualizar_grafo_final(
+        NODOS_VISUALIZACION, 
+        BETA, 
+        GAMMA
+    )
